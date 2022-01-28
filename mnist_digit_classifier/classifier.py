@@ -42,25 +42,34 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using {device} device")
 
 
-class NeuralNetwork(nn.Module):
+class MNISTClassifier(nn.Module):
     def __init__(self):
-        super(NeuralNetwork, self).__init__()
+        super(MNISTClassifier, self).__init__()
         self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(28 * 28, 512),
+        self.conv2d_stack = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3),
             nn.ReLU(),
-            nn.Linear(512, 512),
+            nn.Dropout(0.5),
+            nn.Conv2d(32, 32, kernel_size=3),
             nn.ReLU(),
-            nn.Linear(512, 10)
+            nn.Dropout(0.5),
+            nn.Conv2d(32, 32, kernel_size=3),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Conv2d(32, 8, kernel_size=1),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(8*22*22, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 10)
         )
 
     def forward(self, x):
-        x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
+        logits = self.conv2d_stack(x)
         return logits
 
 
-model = NeuralNetwork().to(device)
+model = MNISTClassifier().to(device)
 print(model)
 
 loss_fn = nn.CrossEntropyLoss()
