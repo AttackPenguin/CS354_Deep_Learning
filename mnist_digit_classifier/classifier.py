@@ -1,14 +1,18 @@
 import os
 
 import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import nn
+from torch import profiler
 from torch.nn.functional import cross_entropy
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets
 from torchvision.transforms import ToTensor, Lambda, Compose
 import matplotlib.pyplot as plt
+
+dttm_start = pd.Timestamp.now()
 
 training_data = datasets.MNIST(
     root='data',
@@ -33,14 +37,17 @@ training_data, validation_data = random_split(
     torch.Generator().manual_seed(666)
 )
 
-batch_size = 64
+batch_size = 1024
 
-train_dataloader = DataLoader(training_data, batch_size=batch_size)
-validate_dataloader = DataLoader(validation_data, batch_size=batch_size)
-test_dataloader = DataLoader(test_data, batch_size=batch_size)
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"Using {device} device")
+train_dataloader = DataLoader(training_data,
+                              num_workers=4,
+                              batch_size=batch_size)
+validate_dataloader = DataLoader(validation_data,
+                                 num_workers=4,
+                                 batch_size=batch_size)
+test_dataloader = DataLoader(test_data,
+                             num_workers=4,
+                             batch_size=batch_size)
 
 
 class MNISTClassifier(pl.LightningModule):
@@ -78,7 +85,10 @@ class MNISTClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
-
-trainer = pl.Trainer(max_epochs=50)
+trainer = pl.Trainer(max_epochs=5, gpus=2, strategy='dp')
 model = MNISTClassifier()
 trainer.fit(model, train_dataloader=train_dataloader)
+
+dttm_finish = pd.Timestamp.now()
+
+print(dttm_finish-dttm_start)
