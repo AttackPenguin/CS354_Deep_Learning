@@ -37,7 +37,7 @@ training_data, validation_data = random_split(
     torch.Generator().manual_seed(666)
 )
 
-batch_size = 1024
+batch_size = 2048
 
 train_dataloader = DataLoader(training_data,
                               num_workers=4,
@@ -85,7 +85,13 @@ class MNISTClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
-trainer = pl.Trainer(max_epochs=5, gpus=2, strategy='dp')
+
+max_epochs = 5
+if torch.cuda.is_available():
+    gpu_count = torch.cuda.device_count()
+    trainer = pl.Trainer(max_epochs=max_epochs, gpus=gpu_count, strategy='dp')
+else:
+    trainer = pl.Trainer(max_epochs=max_epochs)
 model = MNISTClassifier()
 trainer.fit(model, train_dataloader=train_dataloader)
 
